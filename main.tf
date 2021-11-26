@@ -2,7 +2,6 @@ locals {
   ami_id             = var.ami_id == "" ? data.aws_ami.ami.id : var.ami_id
   public_key_name    = var.keypair_name
   device_name        = "/dev/xvdh"
-  ansible_host_group = ["db-mongodb"]
   replica_count      = var.replica_count < 1 ? 1 : var.replica_count
 }
 
@@ -10,8 +9,9 @@ data "aws_vpc" "selected_vpc" {
   id = var.vpc_id
 }
 
+# HACK: setting to false after it's created the first time
 resource "aws_key_pair" "mongo_keypair" {
-  key_name   = local.public_key_name
+  key_name   = "${local.public_key_name}-${uuid()}"
   public_key = var.public_key
 }
 
@@ -45,6 +45,7 @@ resource "aws_instance" "mongo_server" {
       "sudo ln -s /usr/bin/python3 /usr/bin/python",
       "chmod +x /tmp/wait-for-cloud-init.sh",
       "/tmp/wait-for-cloud-init.sh",
+      "sudo apt-get update && sudo apt-get install -y ntp",
     ]
   }
 }
@@ -87,18 +88,20 @@ resource "aws_volume_attachment" "mongo-data-vol-attachment" {
         mongodb_version             = var.mongodb_version
         mongodb_replication_replset = var.replicaset_name
       }
-      groups = local.ansible_host_group
+      # TODO learn to pass along hostnames and their ip addresses
+      groups = ["rs0", "rs1"]
     }
   }
 }
 
+# TODO: convert this to also provision shard addition?
 resource "null_resource" "replicaset_initialization" {
   depends_on = [aws_volume_attachment.mongo-data-vol-attachment]
 
   provisioner "file" {
     content = templatefile("${path.module}/provisioning/init-replicaset.js.tmpl", {
       replicaSetName = var.replicaset_name
-      ip_addrs       = aws_instance.mongo_server.*.public_ip
+      ip_addrs       = aws_instance.mongo_server.*.private_ip
     })
     destination = "/tmp/init-replicaset.js"
   }

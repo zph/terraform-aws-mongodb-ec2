@@ -1,5 +1,6 @@
 provider "aws" {
-  region = "us-east-1"
+# TODO: make this interpolated
+  region = "us-west-2"
 }
 
 resource "aws_ebs_volume" "mongo-data-vol" {
@@ -17,13 +18,14 @@ resource "aws_ebs_volume" "mongo-data-vol" {
 variable "volume_count" {
   type        = number
   description = "Number of volumes to create"
-  default     = 1
+  default     = 6
 }
 
 variable "availability_zone" {
   type        = string
   description = "Availability zone"
-  default     = "us-east-1a"
+# TODO: make this interpolated
+  default     = "us-west-2a"
 }
 
 variable "volume_size" {
@@ -43,5 +45,8 @@ output "ebs-vol-id" {
 }
 
 output "availability_zone" {
-  value = aws_ebs_volume.mongo-data-vol.*.availability_zone
+  value = {
+    availability_zone = aws_ebs_volume.mongo-data-vol.*.availability_zone
+    ebs_volume_id = aws_ebs_volume.mongo-data-vol.*.id
+  }
 }

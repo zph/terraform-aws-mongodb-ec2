@@ -1,8 +1,79 @@
-- hosts: db-mongodb
+- hosts: rs0
   become: true
   roles:
-    - role: undergreen.mongodb
-      mongodb_security_javascript_enabled: true
-      mongodb_net_bindip: 0.0.0.0
-      mongodb_storage_dbpath: /mongodata/data/db
-      mongodb_systemlog_path: /mongodata/var/log/mongodb/{{ mongodb_daemon_name }}.log
+    - role: community.mongodb.mongodb_linux
+    - role: community.mongodb.mongodb_repository
+    - role: community.mongodb.mongodb_install
+      mongodb_version: "3.6"
+    - role: community.mongodb.mongodb_mongod
+      db_path: /data/db
+      repl_set_name: "{{ mongodb_replication_replset }}"
+      replicaset: true
+      sharding: true
+      mongod_config_template: mongod-custom.conf.j2
+    # - role: community.mongodb.mongodb_auth
+    #   vars:
+    #     mongod_host: "127.0.0.1"
+    #     mongodb_admin_user: "admin"
+    #     mongodb_admin_pwd: "very_not_real_possword_bc_committed_passwords_are_bad"
+    #   when: groups["rs0"].index(inventory_hostname) == 0
+    # - role: community.mongodb.mongodb_auth
+    # - role:
+    #   community.mongodb.mongodb_replicaset:
+    #     login_host: localhost
+    #     login_user: admin
+    #     login_password: admin
+    #     replica_set: "{{ mongodb_replication_replset }}"
+    #     members:
+    #     - "mongodb-{{ mongodb_replication_replset }}-{{ }}:27017"
+    #     - mongodb2:27017
+    #     - mongodb3:27017
+    #   when: groups.mongod.index(inventory_hostname) == 0
+        #- role: community.mongodb.mongodb_shard
+        #  #- role: community.mongodb.mongodb_balancer
+
+# - hosts: rs1
+#   become: true
+#   roles:
+#     - role: community.mongodb.mongodb_linux
+#     - role: community.mongodb.mongodb_repository
+#     - role: community.mongodb.mongodb_install
+#       mongodb_version: "3.6"
+#     - role: community.mongodb.mongodb_mongod
+#       db_path: /data/db
+#       repl_set_name: "{{ mongodb_replication_replset }}"
+#       replicaset: true
+#       sharding: true
+#       mongod_config_template: mongod-custom.conf.j2
+#     - role: community.mongodb.mongodb_auth
+      #- role: community.mongodb.mongodb_balancer
+      #- role: community.mongodb.mongodb_user
+
+        #tasks:
+    #- name: Initialise MongoDB Replicaset rs0
+    #  community.mongodb.mongodb_replicaset:
+    #    login_database: "admin"
+    #    login_host: localhost
+    #    replica_set: "rs0"
+    #    members:
+    #      - "mongodb1"
+    #      - "mongodb2"
+    #      - "mongodb3"
+    #  when: ansible_hostname == "mongodb1"
+    #  register: repl
+
+      # community.mongodb.mongodb_mongos
+      #    - role: undergreen.mongodb
+      #      mongodb_security_javascript_enabled: true
+      #      mongodb_net_bindip: 0.0.0.0
+      #      mongodb_storage_dbpath: /data/db
+      #      mongodb_systemlog_path: /data/db/var/log/mongodb/{{ mongodb_daemon_name }}.log
+      #      mongodb_config:
+      #        storage:
+      #          wiredTiger:
+      #            engineConfig:
+      #              # GB Cache
+      #              cacheSizeGB: 0.05
+      #              directoryForIndexes: true
+      #            collectionConfig:
+      #              blockCompressor: zlib
